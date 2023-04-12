@@ -216,10 +216,34 @@ typename SkipList<Key, Comparator>::Node* SkipList<Key, Comparator>::FindLast()
 
 template <typename Key, class Comparator>
 SkipList<Key, Comparator>::SkipList(Comparator cmp, Arena* arena)
-{}
+    : compare_(cmp),
+      arena_(arena),
+      head_(NewNode(0 /* any key will do */, kMaxHeight)),
+      max_height_(1),
+      rnd_(0xdeadbeef) /* 已分配但还未初始化的内存中用该数字来填充 */ {
+        for(int i = 0; i < kMaxHeight; i++) {
+          head_->SetNext(i, nullptr);
+        }
+}
+
 template <typename Key, class Comparator>
 void SkipList<Key, Comparator>::Insert(const Key& key) {
+  Node* prev[kMaxHeight];
+  Node* x = FindGreaterOrEqual(key, prev);
 
+  int height = RandomHeight();
+  if(height > GetMaxHight()) {
+    for(int i = GetMaxHight(); i < height; i++) {
+      prev[i] = head_;
+    }
+    max_height_.store(height, std::memory_order_relaxed);
+  }
+
+  x = NewNode(key, height);
+  for(int i = 0; i < height; i++) {
+    x->NoBarrier_SetNext(i, prev[i]->NoBarrier_Next(i));
+    prev[i]->SetNext(i, x);
+  }
 }
 template <typename Key, class Comparator>
 bool SkipList<Key, Comparator>::Contains(const Key& key) const {
