@@ -6,7 +6,8 @@
 namespace leveldb {
 
 class Random {
-
+ private:
+ 
 };
 
 
